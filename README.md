@@ -20,6 +20,7 @@ docker run -it -p 3000 igrek8/bullmq-prometheus -e HOST=0.0.0.0 -e REDIS_HOST=ho
 - `BULL_PREFIX` - BullMQ prefix (default: bull)
 - `REDIS_HOST` - Redis host (default: 127.0.0.1)
 - `REDIS_PORT` - Redis port (default: 6379)
+- `REDIS_PASSWORD` - Redis password
 - `SLIDING_WINDOW_SECONDS` - Last X seconds to count completed jobs (default: 60)
 
 ## Endpoints
