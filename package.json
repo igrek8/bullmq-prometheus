@@ -1,0 +1,13 @@
+{
+  "name": "bullmq-prometheus",
+  "version": "1.0.0",
+  "license": "MIT",
+  "scripts": {
+    "start": "node main.mjs"
+  },
+  "dependencies": {
+    "bullmq": "4.7.3",
+    "fastify": "4.21.0",
+    "ioredis": "5.3.2"
+  }
+}
