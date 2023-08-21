@@ -2,7 +2,7 @@ import { once } from "events";
 import { Redis } from "ioredis";
 import fastify from "fastify";
 
-const HOST = process.env.HOST ?? "127.0.0.1";
+const HOST = process.env.HOST ?? "0.0.0.0";
 const PORT = Number.parseInt(process.env.PORT ?? 3000);
 const PROM_PREFIX = process.env.PROM_PREFIX ?? "bull";
 const BULL_PREFIX = process.env.BULL_PREFIX ?? "bull";
