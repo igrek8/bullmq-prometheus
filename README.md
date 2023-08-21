@@ -2,8 +2,14 @@
 
 Prometheus metrics exporter for BullMQ
 
+<p align="center">
+  <img src="./media/splash.png" width="400" />
+<p>
+
+## Start
+
 ```bash
-docker run -it -p 3000 @igrek8/bullmq-prometheus
+docker run -it -p 3000 igrek8/bullmq-prometheus -e HOST=0.0.0.0 -e REDIS_HOST=host.docker.internal
 ```
 
 ## Environments
