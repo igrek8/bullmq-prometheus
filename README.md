@@ -9,7 +9,10 @@ Prometheus metrics exporter for BullMQ
 ## Start
 
 ```bash
-docker run -it -p 3000 igrek8/bullmq-prometheus -e HOST=0.0.0.0 -e REDIS_HOST=host.docker.internal
+docker run -it -p 3000:3000 \
+  -e HOST=0.0.0.0 \
+  -e REDIS_HOST=host.docker.internal \
+  igrek8/bullmq-prometheus
 ```
 
 ## Environments
