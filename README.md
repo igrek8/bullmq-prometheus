@@ -10,14 +10,13 @@ Prometheus metrics exporter for BullMQ
 
 ```bash
 docker run -it -p 3000:3000 \
-  -e HOST=0.0.0.0 \
   -e REDIS_HOST=host.docker.internal \
   igrek8/bullmq-prometheus
 ```
 
 ## Environments
 
-- `HOST` - HTTP server host (default: 127.0.0.1)
+- `HOST` - HTTP server host (default: 0.0.0.0)
 - `PORT` - HTTP server port (default: 3000)
 - `PROM_PREFIX` - Prometheus metric prefix (default: bull)
 - `BULL_PREFIX` - BullMQ prefix (default: bull)
