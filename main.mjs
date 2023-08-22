@@ -8,10 +8,23 @@ const PROM_PREFIX = process.env.PROM_PREFIX ?? "bull";
 const BULL_PREFIX = process.env.BULL_PREFIX ?? "bull";
 const REDIS_HOST = process.env.REDIS_HOST ?? "127.0.0.1";
 const REDIS_PORT = Number.parseInt(process.env.REDIST_PORT ?? 6379);
+const REDIS_DB = process.env.REDIS_DB ?? "0:default";
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
 const SLIDING_WINDOW_SECONDS = process.env.SLIDING_WINDOW_SECONDS ?? 60;
 
 const app = fastify({ logger: true });
+
+const databases = REDIS_DB.split(",").map((val) => val.split(":"));
+
+const descriptions = {
+  [`${PROM_PREFIX}_active_total`]: "Number of jobs in processing",
+  [`${PROM_PREFIX}_wait_total`]: "Number of pending jobs",
+  [`${PROM_PREFIX}_waiting_children_total`]: "Number of pending children jobs",
+  [`${PROM_PREFIX}_prioritized_total`]: "Number of prioritized jobs",
+  [`${PROM_PREFIX}_delayed_total`]: "Number of delayed jobs",
+  [`${PROM_PREFIX}_failed_total`]: "Number of failed jobs",
+  [`${PROM_PREFIX}_last_${SLIDING_WINDOW_SECONDS}_seconds_completed_total`]: `Number of last ${SLIDING_WINDOW_SECONDS} seconds completed jobs`,
+};
 
 const redis = new Redis({
   host: REDIS_HOST,
@@ -27,107 +40,85 @@ app.get("/health", (_, res) => {
 
 app.get("/metrics", async (_, res) => {
   const now = new Date();
-  const multi = redis.multi();
   const time = new Date(now);
   time.setSeconds(time.getSeconds() - SLIDING_WINDOW_SECONDS);
 
-  const queues = [];
-  let cursor = "0";
+  const metrics = {};
 
-  do {
-    const [next, elements] = await redis.scan(cursor, "MATCH", `${BULL_PREFIX}:*:meta`);
-    queues.push(...elements);
-    cursor = next;
-  } while (cursor !== "0");
+  for (const [index, db] of databases) {
+    await redis.select(index);
+    const multi = redis.multi();
 
-  queues.forEach((queue) => {
-    const [, name] = queue.split(":");
-    multi.llen(`${BULL_PREFIX}:${name}:active`);
-    multi.llen(`${BULL_PREFIX}:${name}:wait`);
-    multi.zcount(`${BULL_PREFIX}:${name}:waiting-children`, "-inf", "+inf");
-    multi.zcount(`${BULL_PREFIX}:${name}:prioritized`, "-inf", "+inf");
-    multi.zcount(`${BULL_PREFIX}:${name}:delayed`, "-inf", "+inf");
-    multi.zcount(`${BULL_PREFIX}:${name}:failed`, "-inf", "+inf");
-    multi.zcount(`${BULL_PREFIX}:${name}:completed`, +time, "+inf");
-  });
+    let cursor = "0";
+    const queues = [];
 
-  const results = await multi.exec();
+    do {
+      const [next, elements] = await redis.scan(cursor, "MATCH", `${BULL_PREFIX}:*:meta`);
+      queues.push(...elements);
+      cursor = next;
+    } while (cursor !== "0");
 
-  const offset = 7;
+    queues.forEach((queue) => {
+      const [, name] = queue.split(":");
+      multi.llen(`${BULL_PREFIX}:${name}:active`);
+      multi.llen(`${BULL_PREFIX}:${name}:wait`);
+      multi.zcount(`${BULL_PREFIX}:${name}:waiting-children`, "-inf", "+inf");
+      multi.zcount(`${BULL_PREFIX}:${name}:prioritized`, "-inf", "+inf");
+      multi.zcount(`${BULL_PREFIX}:${name}:delayed`, "-inf", "+inf");
+      multi.zcount(`${BULL_PREFIX}:${name}:failed`, "-inf", "+inf");
+      multi.zcount(`${BULL_PREFIX}:${name}:completed`, +time, "+inf");
+    });
 
-  const metrics = {
-    [`${PROM_PREFIX}_active_total`]: {
-      description: "Number of jobs in processing",
-      queues: {},
-    },
-    [`${PROM_PREFIX}_wait_total`]: {
-      description: "Number of pending jobs",
-      queues: {},
-    },
-    [`${PROM_PREFIX}_waiting_children_total`]: {
-      description: "Number of pending children jobs",
-      queues: {},
-    },
-    [`${PROM_PREFIX}_prioritized_total`]: {
-      description: "Number of prioritized jobs",
-      queues: {},
-    },
-    [`${PROM_PREFIX}_delayed_total`]: {
-      description: "Number of delayed jobs",
-      queues: {},
-    },
-    [`${PROM_PREFIX}_failed_total`]: {
-      description: "Number of failed jobs",
-      queues: {},
-    },
-    [`${PROM_PREFIX}_last_${SLIDING_WINDOW_SECONDS}_seconds_completed_total`]: {
-      description: `Number of last ${SLIDING_WINDOW_SECONDS} seconds completed jobs`,
-      queues: {},
-    },
-  };
+    const results = await multi.exec();
 
-  for (let i = 0; i < results.length / offset; i++) {
-    const [, queue] = queues[i].split(":");
+    const offset = 7;
 
-    const [
-      [, active_total],
-      [, wait_total],
-      [, waiting_children_total],
-      [, prioritized_total],
-      [, delayed_total],
-      [, failed_total],
-      [, completed_total],
-    ] = results.slice(i * offset, (i + 1) * offset);
+    for (let i = 0; i < results.length / offset; i++) {
+      const [, queue] = queues[i].split(":");
 
-    const data = {
-      [`${PROM_PREFIX}_active_total`]: active_total,
-      [`${PROM_PREFIX}_wait_total`]: wait_total,
-      [`${PROM_PREFIX}_waiting_children_total`]: waiting_children_total,
-      [`${PROM_PREFIX}_prioritized_total`]: prioritized_total,
-      [`${PROM_PREFIX}_delayed_total`]: delayed_total,
-      [`${PROM_PREFIX}_failed_total`]: failed_total,
-      [`${PROM_PREFIX}_last_${SLIDING_WINDOW_SECONDS}_seconds_completed_total`]: completed_total,
-    };
+      const [
+        [, active_total],
+        [, wait_total],
+        [, waiting_children_total],
+        [, prioritized_total],
+        [, delayed_total],
+        [, failed_total],
+        [, completed_total],
+      ] = results.slice(i * offset, (i + 1) * offset);
 
-    for (const metric in data) {
-      const value = data[metric];
-      metrics[metric].queues[queue] = value;
+      const data = {
+        [`${PROM_PREFIX}_active_total`]: active_total,
+        [`${PROM_PREFIX}_wait_total`]: wait_total,
+        [`${PROM_PREFIX}_waiting_children_total`]: waiting_children_total,
+        [`${PROM_PREFIX}_prioritized_total`]: prioritized_total,
+        [`${PROM_PREFIX}_delayed_total`]: delayed_total,
+        [`${PROM_PREFIX}_failed_total`]: failed_total,
+        [`${PROM_PREFIX}_last_${SLIDING_WINDOW_SECONDS}_seconds_completed_total`]: completed_total,
+      };
+
+      for (const metric in data) {
+        const value = data[metric];
+        metrics[metric] ??= {};
+        metrics[metric][db] ??= {};
+        metrics[metric][db][queue] ??= value;
+      }
     }
   }
 
   let output = "";
 
   for (const metric in metrics) {
-    const { queues, description } = metrics[metric];
     let hasData = false;
-    for (const queue in queues) {
-      if (!hasData) {
-        output += `# HELP ${metric} ${description}\n`;
-        output += `# TYPE ${metric} gauge\n`;
-        hasData = true;
+    for (const db in metrics[metric]) {
+      for (const queue in metrics[metric][db]) {
+        if (!hasData) {
+          output += `# HELP ${metric} ${descriptions[metric]}\n`;
+          output += `# TYPE ${metric} gauge\n`;
+          hasData = true;
+        }
+        const value = metrics[metric][db][queue];
+        output += `${metric}{queue="${queue}",db="${db}"} ${value}\n`;
       }
-      const value = queues[queue];
-      output += `${metric}{queue="${queue}"} ${value}\n`;
     }
     output += "\n";
   }
