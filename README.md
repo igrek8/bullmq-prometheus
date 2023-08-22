@@ -23,6 +23,8 @@ docker run -it -p 3000:3000 \
 - `REDIS_HOST` - Redis host (default: 127.0.0.1)
 - `REDIS_PORT` - Redis port (default: 6379)
 - `REDIS_PASSWORD` - Redis password
+- `REDIS_DB` - Redis databases (comma separated list of colon separated tuples `index:alias`) (default: `0:default`)
+  - For example `0:staging,1:sandbox`, the alias will be used as a label
 - `SLIDING_WINDOW_SECONDS` - Last X seconds to count completed jobs (default: 60)
 
 ## Endpoints
@@ -45,36 +47,36 @@ docker run -it -p 3000:3000 \
 ```
 # HELP bull_active_total Number of jobs in processing
 # TYPE bull_active_total gauge
-bull_active_total{queue="child"} 0
-bull_active_total{queue="parent"} 0
+bull_active_total{queue="child","db"="default"} 0
+bull_active_total{queue="parent","db"="default"} 0
 
 # HELP bull_wait_total Number of pending jobs
 # TYPE bull_wait_total gauge
-bull_wait_total{queue="child"} 0
-bull_wait_total{queue="parent"} 0
+bull_wait_total{queue="child","db"="default"} 0
+bull_wait_total{queue="parent","db"="default"} 0
 
 # HELP bull_waiting_children_total Number of pending children jobs
 # TYPE bull_waiting_children_total gauge
-bull_waiting_children_total{queue="child"} 0
-bull_waiting_children_total{queue="parent"} 0
+bull_waiting_children_total{queue="child","db"="default"} 0
+bull_waiting_children_total{queue="parent","db"="default"} 0
 
 # HELP bull_prioritized_total Number of prioritized jobs
 # TYPE bull_prioritized_total gauge
-bull_prioritized_total{queue="child"} 0
-bull_prioritized_total{queue="parent"} 0
+bull_prioritized_total{queue="child","db"="default"} 0
+bull_prioritized_total{queue="parent","db"="default"} 0
 
 # HELP bull_delayed_total Number of delayed jobs
 # TYPE bull_delayed_total gauge
-bull_delayed_total{queue="child"} 0
-bull_delayed_total{queue="parent"} 0
+bull_delayed_total{queue="child","db"="default"} 0
+bull_delayed_total{queue="parent","db"="default"} 0
 
 # HELP bull_failed_total Number of failed jobs
 # TYPE bull_failed_total gauge
-bull_failed_total{queue="child"} 0
-bull_failed_total{queue="parent"} 0
+bull_failed_total{queue="child","db"="default"} 0
+bull_failed_total{queue="parent","db"="default"} 0
 
 # HELP bull_completed_total Number of completed jobs
 # TYPE bull_completed_total gauge
-bull_completed_total{queue="child"} 0
-bull_completed_total{queue="parent"} 0
+bull_completed_total{queue="child","db"="default"} 0
+bull_completed_total{queue="parent","db"="default"} 0
 ```
