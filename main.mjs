@@ -10,7 +10,6 @@ const REDIS_HOST = process.env.REDIS_HOST ?? "127.0.0.1";
 const REDIS_PORT = Number.parseInt(process.env.REDIST_PORT ?? 6379);
 const REDIS_DB = process.env.REDIS_DB ?? "0:default";
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
-const SLIDING_WINDOW_SECONDS = process.env.SLIDING_WINDOW_SECONDS ?? 60;
 
 const app = fastify({ logger: true });
 
@@ -23,7 +22,7 @@ const descriptions = {
   [`${PROM_PREFIX}_prioritized_total`]: "Number of prioritized jobs",
   [`${PROM_PREFIX}_delayed_total`]: "Number of delayed jobs",
   [`${PROM_PREFIX}_failed_total`]: "Number of failed jobs",
-  [`${PROM_PREFIX}_last_${SLIDING_WINDOW_SECONDS}_seconds_completed_total`]: `Number of last ${SLIDING_WINDOW_SECONDS} seconds completed jobs`,
+  [`${PROM_PREFIX}_completed_total`]: "Number of completed jobs",
 };
 
 const redis = new Redis({
@@ -39,15 +38,10 @@ app.get("/health", (_, res) => {
 });
 
 app.get("/metrics", async (_, res) => {
-  const now = new Date();
-  const time = new Date(now);
-  time.setSeconds(time.getSeconds() - SLIDING_WINDOW_SECONDS);
-
   const metrics = {};
 
   for (const [index, db] of databases) {
     await redis.select(index);
-    const multi = redis.multi();
 
     let cursor = "0";
     const queues = [];
@@ -58,6 +52,8 @@ app.get("/metrics", async (_, res) => {
       cursor = next;
     } while (cursor !== "0");
 
+    const multi = redis.multi();
+
     queues.forEach((queue) => {
       const [, name] = queue.split(":");
       multi.llen(`${BULL_PREFIX}:${name}:active`);
@@ -66,7 +62,7 @@ app.get("/metrics", async (_, res) => {
       multi.zcount(`${BULL_PREFIX}:${name}:prioritized`, "-inf", "+inf");
       multi.zcount(`${BULL_PREFIX}:${name}:delayed`, "-inf", "+inf");
       multi.zcount(`${BULL_PREFIX}:${name}:failed`, "-inf", "+inf");
-      multi.zcount(`${BULL_PREFIX}:${name}:completed`, +time, "+inf");
+      multi.zcount(`${BULL_PREFIX}:${name}:completed`, "-inf", "+inf");
     });
 
     const results = await multi.exec();
@@ -93,7 +89,7 @@ app.get("/metrics", async (_, res) => {
         [`${PROM_PREFIX}_prioritized_total`]: prioritized_total,
         [`${PROM_PREFIX}_delayed_total`]: delayed_total,
         [`${PROM_PREFIX}_failed_total`]: failed_total,
-        [`${PROM_PREFIX}_last_${SLIDING_WINDOW_SECONDS}_seconds_completed_total`]: completed_total,
+        [`${PROM_PREFIX}_completed_total`]: completed_total,
       };
 
       for (const metric in data) {

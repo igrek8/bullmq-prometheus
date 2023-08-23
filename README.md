@@ -9,9 +9,7 @@ Prometheus metrics exporter for BullMQ
 ## Start
 
 ```bash
-docker run -it -p 3000:3000 \
-  -e REDIS_HOST=host.docker.internal \
-  igrek8/bullmq-prometheus
+docker run -it -p 3000:3000 -e REDIS_HOST=host.docker.internal igrek8/bullmq-prometheus
 ```
 
 ## Environments
@@ -25,7 +23,6 @@ docker run -it -p 3000:3000 \
 - `REDIS_PASSWORD` - Redis password
 - `REDIS_DB` - Redis databases (comma separated list of colon separated tuples `index:alias`) (default: `0:default`)
   - For example `0:staging,1:sandbox`, the alias will be used as a label
-- `SLIDING_WINDOW_SECONDS` - Last X seconds to count completed jobs (default: 60)
 
 ## Endpoints
 
