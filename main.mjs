@@ -58,11 +58,11 @@ app.get("/metrics", async (_, res) => {
       const [, name] = queue.split(":");
       multi.llen(`${BULL_PREFIX}:${name}:active`);
       multi.llen(`${BULL_PREFIX}:${name}:wait`);
-      multi.zcount(`${BULL_PREFIX}:${name}:waiting-children`, "-inf", "+inf");
-      multi.zcount(`${BULL_PREFIX}:${name}:prioritized`, "-inf", "+inf");
-      multi.zcount(`${BULL_PREFIX}:${name}:delayed`, "-inf", "+inf");
-      multi.zcount(`${BULL_PREFIX}:${name}:failed`, "-inf", "+inf");
-      multi.zcount(`${BULL_PREFIX}:${name}:completed`, "-inf", "+inf");
+      multi.zcard(`${BULL_PREFIX}:${name}:waiting-children`);
+      multi.zcard(`${BULL_PREFIX}:${name}:prioritized`);
+      multi.zcard(`${BULL_PREFIX}:${name}:delayed`);
+      multi.zcard(`${BULL_PREFIX}:${name}:failed`);
+      multi.zcard(`${BULL_PREFIX}:${name}:completed`);
     });
 
     const results = await multi.exec();
