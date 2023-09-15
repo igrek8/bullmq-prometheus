@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "bullmq": "4.10.0",
-    "fastify": "4.23.1",
+    "fastify": "4.23.2",
     "ioredis": "5.3.2"
   }
 }
