@@ -9,6 +9,7 @@ const BULL_PREFIX = process.env.BULL_PREFIX ?? "bull";
 const REDIS_HOST = process.env.REDIS_HOST ?? "127.0.0.1";
 const REDIS_PORT = Number.parseInt(process.env.REDIST_PORT ?? 6379);
 const REDIS_DB = process.env.REDIS_DB ?? "0:default";
+const REDIS_USERNAME = process.env.REDIS_USERNAME;
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
 
 const app = fastify({ logger: true });
@@ -28,6 +29,7 @@ const descriptions = {
 const redis = new Redis({
   host: REDIS_HOST,
   port: REDIS_PORT,
+  username: REDIS_USERNAME,
   password: REDIS_PASSWORD,
   maxRetriesPerRequest: null,
   offlineQueue: false,
@@ -70,7 +72,7 @@ app.get("/metrics", async (_, res) => {
     const offset = 7;
 
     for (let i = 0; i < results.length / offset; i++) {
-      const [, queue] = queues[i].split(":");
+      const queue = queues[i].split(":").slice(1, -1).join(":");
 
       const [
         [, active_total],
