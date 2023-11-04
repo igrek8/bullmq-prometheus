@@ -35,6 +35,8 @@ docker run -it -p 3000:3000 -e REDIS_HOST=host.docker.internal igrek8/bullmq-pro
     - `delayed_total` - Number of delayed jobs
     - `failed_total` - Number of failed jobs
     - `completed_total` - Number of completed jobs (last 1 minute)
+    - `active_max_age_sec` - Max age of active jobs
+    - `wait_max_age_sec` - Max age of pending jobs
 - `/health` - Health endpoint
   - `HTTP 200` - Redis is available
   - `HTTP 503` - Redis is unavailable

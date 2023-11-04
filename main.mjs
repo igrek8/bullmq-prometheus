@@ -1,6 +1,7 @@
 import { once } from "events";
 import { Redis } from "ioredis";
 import fastify from "fastify";
+import bullmq from "bullmq";
 
 const HOST = process.env.HOST ?? "0.0.0.0";
 const PORT = Number.parseInt(process.env.PORT ?? 3000);
@@ -24,6 +25,8 @@ const descriptions = {
   [`${PROM_PREFIX}_delayed_total`]: "Number of delayed jobs",
   [`${PROM_PREFIX}_failed_total`]: "Number of failed jobs",
   [`${PROM_PREFIX}_completed_total`]: "Number of completed jobs",
+  [`${PROM_PREFIX}_wait_max_age_sec`]: "Max age of pending jobs",
+  [`${PROM_PREFIX}_active_max_age_sec`]: "Max age of processing jobs",
 };
 
 const redis = new Redis({
@@ -84,6 +87,20 @@ app.get("/metrics", async (_, res) => {
         [, completed_total],
       ] = results.slice(i * offset, (i + 1) * offset);
 
+      const bullQueue = new bullmq.Queue(queue, { connection: redis, prefix: BULL_PREFIX });
+
+      const wait_max_age_sec = await bullQueue
+        .getWaiting()
+        .then((jobs) =>
+          jobs.map((job) => (new Date().getTime() - job.timestamp) / 1000).reduce((a, b) => Math.max(a, b), 0)
+        );
+
+      const active_max_age_sec = await bullQueue
+        .getActive()
+        .then((jobs) =>
+          jobs.map((job) => (new Date().getTime() - job.timestamp) / 1000).reduce((a, b) => Math.max(a, b), 0)
+        );
+
       const data = {
         [`${PROM_PREFIX}_active_total`]: active_total,
         [`${PROM_PREFIX}_wait_total`]: wait_total,
@@ -92,6 +109,8 @@ app.get("/metrics", async (_, res) => {
         [`${PROM_PREFIX}_delayed_total`]: delayed_total,
         [`${PROM_PREFIX}_failed_total`]: failed_total,
         [`${PROM_PREFIX}_completed_total`]: completed_total,
+        [`${PROM_PREFIX}_wait_max_age_sec`]: wait_max_age_sec,
+        [`${PROM_PREFIX}_active_max_age_sec`]: active_max_age_sec,
       };
 
       for (const metric in data) {
