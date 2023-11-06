@@ -101,6 +101,8 @@ app.get("/metrics", async (_, res) => {
           jobs.map((job) => (new Date().getTime() - job.timestamp) / 1000).reduce((a, b) => Math.max(a, b), 0)
         );
 
+      await bullQueue.disconnect();
+
       const data = {
         [`${PROM_PREFIX}_active_total`]: active_total,
         [`${PROM_PREFIX}_wait_total`]: wait_total,
