@@ -11,6 +11,7 @@ const REDIS_PORT = Number.parseInt(process.env.REDIST_PORT ?? 6379);
 const REDIS_DB = process.env.REDIS_DB ?? "0:default";
 const REDIS_USERNAME = process.env.REDIS_USERNAME;
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
+const REDIS_CA = process.env.REDIS_CA;
 
 const app = fastify({ logger: true });
 
@@ -33,6 +34,7 @@ const redis = new Redis({
   password: REDIS_PASSWORD,
   maxRetriesPerRequest: null,
   offlineQueue: false,
+  tls: REDIS_CA ? { ca: Buffer.from(REDIS_CA, "base64"), rejectUnauthorized: true } : undefined
 });
 
 app.get("/health", (_, res) => {

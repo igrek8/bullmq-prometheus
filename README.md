@@ -23,6 +23,8 @@ docker run -it -p 3000:3000 -e REDIS_HOST=host.docker.internal igrek8/bullmq-pro
 - `REDIS_PASSWORD` - Redis password
 - `REDIS_DB` - Redis databases (comma separated list of colon separated tuples `index:alias`) (default: `0:default`)
   - For example `0:staging,1:sandbox`, the alias will be used as a label
+- `REDIS_CA` - Redis CA certificate (base64 encoded CA certificate) (default: none)
+  - For example `cat ca.crt | base64`
 
 ## Endpoints
 
