@@ -3,15 +3,23 @@ import { Redis } from "ioredis";
 import fastify from "fastify";
 
 const HOST = process.env.HOST ?? "0.0.0.0";
-const PORT = Number.parseInt(process.env.PORT ?? 3000);
+const PORT = Number.parseInt(process.env.PORT ?? "3000");
 const PROM_PREFIX = process.env.PROM_PREFIX ?? "bull";
 const BULL_PREFIX = process.env.BULL_PREFIX ?? "bull";
 const REDIS_HOST = process.env.REDIS_HOST ?? "127.0.0.1";
-const REDIS_PORT = Number.parseInt(process.env.REDIST_PORT ?? 6379);
+const REDIS_PORT = Number.parseInt(process.env.REDIST_PORT ?? "6379");
 const REDIS_DB = process.env.REDIS_DB ?? "0:default";
 const REDIS_USERNAME = process.env.REDIS_USERNAME;
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
 const REDIS_CA = process.env.REDIS_CA;
+
+interface Metrics {
+  [key: string]: {
+    [db: string]: {
+      [queue: string]: number;
+    };
+  };
+}
 
 const app = fastify({ logger: true });
 
@@ -34,7 +42,7 @@ const redis = new Redis({
   password: REDIS_PASSWORD,
   maxRetriesPerRequest: null,
   offlineQueue: false,
-  tls: REDIS_CA ? { ca: Buffer.from(REDIS_CA, "base64"), rejectUnauthorized: true } : undefined
+  tls: REDIS_CA ? { ca: Buffer.from(REDIS_CA, "base64"), rejectUnauthorized: true } : undefined,
 });
 
 app.get("/health", (_, res) => {
@@ -42,7 +50,7 @@ app.get("/health", (_, res) => {
 });
 
 app.get("/metrics", async (_, res) => {
-  const metrics = {};
+  const metrics: Metrics = {};
 
   for (const [index, db] of databases) {
     await redis.select(index);
@@ -71,6 +79,10 @@ app.get("/metrics", async (_, res) => {
 
     const results = await multi.exec();
 
+    if (!results) {
+      continue;
+    }
+
     const offset = 7;
 
     for (let i = 0; i < results.length / offset; i++) {
@@ -98,6 +110,9 @@ app.get("/metrics", async (_, res) => {
 
       for (const metric in data) {
         const value = data[metric];
+        if (typeof value !== "number") {
+          continue;
+        }
         metrics[metric] ??= {};
         metrics[metric][db] ??= {};
         metrics[metric][db][queue] ??= value;
@@ -131,5 +146,9 @@ process.on("SIGINT", async () => {
   redis.disconnect(false);
 });
 
-await once(redis, "ready");
-await app.listen({ host: HOST, port: PORT });
+// Top-level await may not be supported in all environments, so we wrap it in
+// an IIFE
+(async () => {
+  await once(redis, "ready");
+  await app.listen({ host: HOST, port: PORT });
+})();

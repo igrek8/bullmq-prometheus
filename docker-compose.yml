@@ -20,4 +20,4 @@ services:
       PROM_PREFIX: bull
       BULL_PREFIX: bull
     ports:
-      - 3000:3000
+      - "3000:3000"
