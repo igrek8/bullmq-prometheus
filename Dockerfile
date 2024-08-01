@@ -1,5 +1,5 @@
 FROM node:22-alpine
-ENV NODE_ sg ENV=production
+ENV NODE_ENV=production
 WORKDIR /usr/app
 COPY package.json package-lock.json ./
 RUN npm install --ci --silent \
