@@ -11,6 +11,7 @@ const REDIS_PORT = Number.parseInt(process.env.REDIST_PORT ?? 6379);
 const REDIS_DB = process.env.REDIS_DB ?? "0:default";
 const REDIS_USERNAME = process.env.REDIS_USERNAME;
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
+const USE_TLS = process.env.USE_TLS;
 const REDIS_CA = process.env.REDIS_CA;
 
 const app = fastify({ logger: true });
@@ -27,6 +28,27 @@ const descriptions = {
   [`${PROM_PREFIX}_completed_total`]: "Number of completed jobs",
 };
 
+const parseBoolean = (value) => {
+  return value === "true" || value === "1" || value === "yes";
+};
+
+const getTlsOptions = () => {
+  if (REDIS_CA) {
+    // REDIS_CA is defined
+    // use it for TLS configuration
+    return {
+      ca: Buffer.from(REDIS_CA, "base64"), // Decode the base64-encoded CA certificate
+      rejectUnauthorized: true, // Enforce certificate verification
+    };
+  } else if (parseBoolean(USE_TLS)) {
+    // USE_TLS is true but REDIS_CA is not defined
+    // enable TLS without specific CA
+    return {}; // see: https://github.com/redis/ioredis#tls-options
+  } else {
+    return undefined; // Disable TLS
+  }
+};
+
 const redis = new Redis({
   host: REDIS_HOST,
   port: REDIS_PORT,
@@ -34,7 +56,7 @@ const redis = new Redis({
   password: REDIS_PASSWORD,
   maxRetriesPerRequest: null,
   offlineQueue: false,
-  tls: REDIS_CA ? { ca: Buffer.from(REDIS_CA, "base64"), rejectUnauthorized: true } : undefined
+  tls: getTlsOptions(),
 });
 
 app.get("/health", (_, res) => {
