@@ -25,6 +25,7 @@ docker run -it -p 3000:3000 -e REDIS_HOST=host.docker.internal igrek8/bullmq-pro
   - For example `0:staging,1:sandbox`, the alias will be used as a label
 - `REDIS_CA` - Redis CA certificate (base64 encoded CA certificate) (default: none)
   - For example `cat ca.crt | base64`
+- `REDIS_TLS` - Redis TLS (default: false)
 
 ## Endpoints
 

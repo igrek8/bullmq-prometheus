@@ -1,6 +1,6 @@
 import { once } from "events";
-import { Redis } from "ioredis";
 import fastify from "fastify";
+import { Redis } from "ioredis";
 
 const HOST = process.env.HOST ?? "0.0.0.0";
 const PORT = Number.parseInt(process.env.PORT ?? 3000);
@@ -12,6 +12,7 @@ const REDIS_DB = process.env.REDIS_DB ?? "0:default";
 const REDIS_USERNAME = process.env.REDIS_USERNAME;
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
 const REDIS_CA = process.env.REDIS_CA;
+const REDIS_TLS = process.env.REDIS_TLS === "true";
 
 const app = fastify({ logger: true });
 
@@ -27,6 +28,20 @@ const descriptions = {
   [`${PROM_PREFIX}_completed_total`]: "Number of completed jobs",
 };
 
+/**
+ * @see https://github.com/redis/ioredis#tls-options
+ */
+let tls = undefined;
+
+if (REDIS_TLS) {
+  tls = {};
+} else if (REDIS_CA) {
+  tls = {
+    ca: Buffer.from(REDIS_CA, "base64"),
+    rejectUnauthorized: true,
+  };
+}
+
 const redis = new Redis({
   host: REDIS_HOST,
   port: REDIS_PORT,
@@ -34,7 +49,7 @@ const redis = new Redis({
   password: REDIS_PASSWORD,
   maxRetriesPerRequest: null,
   offlineQueue: false,
-  tls: REDIS_CA ? { ca: Buffer.from(REDIS_CA, "base64"), rejectUnauthorized: true } : undefined
+  tls,
 });
 
 app.get("/health", (_, res) => {
