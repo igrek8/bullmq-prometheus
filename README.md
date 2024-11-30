@@ -26,6 +26,9 @@ docker run -it -p 3000:3000 -e REDIS_HOST=host.docker.internal igrek8/bullmq-pro
 - `REDIS_CA` - Redis CA certificate (base64 encoded CA certificate) (default: none)
   - For example `cat ca.crt | base64`
 - `REDIS_TLS` - Redis TLS (default: false)
+- `BULL_QUEUES` - Comma-separated list of queue names to monitor (default: not set)
+  - For example: myQueue1,myQueue2,myQueue3
+    Note: When set, the application will use these queue names directly without scanning Redis. This can significantly improve performance in environments with large Redis datasets by avoiding costly key scans. Since queue names typically do not change frequently, specifying them explicitly ensures minimal impact on performance during instrumentation.
 
 ## Endpoints
 

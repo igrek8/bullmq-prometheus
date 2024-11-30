@@ -6,6 +6,7 @@ const HOST = process.env.HOST ?? "0.0.0.0";
 const PORT = Number.parseInt(process.env.PORT ?? 3000);
 const PROM_PREFIX = process.env.PROM_PREFIX ?? "bull";
 const BULL_PREFIX = process.env.BULL_PREFIX ?? "bull";
+const BULL_QUEUES = process.env.BULL_QUEUES?.split(",");
 const REDIS_HOST = process.env.REDIS_HOST ?? "127.0.0.1";
 const REDIS_PORT = Number.parseInt(process.env.REDIS_PORT ?? 6379);
 const REDIS_DB = process.env.REDIS_DB ?? "0:default";
@@ -62,14 +63,20 @@ app.get("/metrics", async (_, res) => {
   for (const [index, db] of databases) {
     await redis.select(index);
 
-    let cursor = "0";
     const queues = [];
 
-    do {
-      const [next, elements] = await redis.scan(cursor, "MATCH", `${BULL_PREFIX}:*:meta`);
-      queues.push(...elements);
-      cursor = next;
-    } while (cursor !== "0");
+    if (BULL_QUEUES) {
+      BULL_QUEUES.forEach((name) => {
+        queues.push(`${BULL_PREFIX}:${name}:meta`);
+      });
+    } else {
+      let cursor = "0";
+      do {
+        const [next, elements] = await redis.scan(cursor, "MATCH", `${BULL_PREFIX}:*:meta`);
+        queues.push(...elements);
+        cursor = next;
+      } while (cursor !== "0");
+    }
 
     const multi = redis.multi();
 
