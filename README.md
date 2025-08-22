@@ -29,6 +29,9 @@ docker run -it -p 3000:3000 -e REDIS_HOST=host.docker.internal igrek8/bullmq-pro
 - `BULL_QUEUES` - Comma-separated list of queue names to monitor (default: not set)
   - For example: `myQueue1,myQueue2,myQueue3`
     Note: When set, the application will use these queue names directly without scanning Redis. This can significantly improve performance in environments with large Redis datasets by avoiding costly key scans. Since queue names typically do not change frequently, specifying them explicitly ensures minimal impact on performance during instrumentation.
+- `REDIS_SENTINEL_ENABLED` - Redis sentinel mode enabled (default: false)
+- `REDIS_SENTINEL_HOSTS` - Redis sentinel addresses in `host:port` format as comma separated string
+- `REDIS_NAMESPACE` - Redis namespace (also referred as redis name)
 
 ## Endpoints
 

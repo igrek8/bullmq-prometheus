@@ -14,6 +14,9 @@ const REDIS_USERNAME = process.env.REDIS_USERNAME;
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
 const REDIS_CA = process.env.REDIS_CA;
 const REDIS_TLS = process.env.REDIS_TLS === "true";
+const REDIS_SENTINEL_ENABLED = process.env.REDIS_SENTINEL_ENABLED === "true";
+const REDIS_SENTINEL_HOSTS = process.env.REDIS_SENTINEL_HOSTS;
+const REDIS_NAMESPACE = process.env.REDIS_NAMESPACE;
 
 const app = fastify({ logger: true });
 
@@ -26,7 +29,7 @@ const descriptions = {
   [`${PROM_PREFIX}_prioritized_total`]: "Number of prioritized jobs",
   [`${PROM_PREFIX}_delayed_total`]: "Number of delayed jobs",
   [`${PROM_PREFIX}_failed_total`]: "Number of failed jobs",
-  [`${PROM_PREFIX}_completed_total`]: "Number of completed jobs",
+  [`${PROM_PREFIX}_completed_total`]: "Number of completed jobs"
 };
 
 /**
@@ -39,19 +42,11 @@ if (REDIS_TLS) {
 } else if (REDIS_CA) {
   tls = {
     ca: Buffer.from(REDIS_CA, "base64"),
-    rejectUnauthorized: true,
+    rejectUnauthorized: true
   };
 }
 
-const redis = new Redis({
-  host: REDIS_HOST,
-  port: REDIS_PORT,
-  username: REDIS_USERNAME,
-  password: REDIS_PASSWORD,
-  maxRetriesPerRequest: null,
-  offlineQueue: false,
-  tls,
-});
+const redis = getRedisDriverInstance();
 
 app.get("/health", (_, res) => {
   res.code(redis.status === "ready" ? 200 : 503).send();
@@ -105,7 +100,7 @@ app.get("/metrics", async (_, res) => {
         [, prioritized_total],
         [, delayed_total],
         [, failed_total],
-        [, completed_total],
+        [, completed_total]
       ] = results.slice(i * offset, (i + 1) * offset);
 
       const data = {
@@ -115,7 +110,7 @@ app.get("/metrics", async (_, res) => {
         [`${PROM_PREFIX}_prioritized_total`]: prioritized_total,
         [`${PROM_PREFIX}_delayed_total`]: delayed_total,
         [`${PROM_PREFIX}_failed_total`]: failed_total,
-        [`${PROM_PREFIX}_completed_total`]: completed_total,
+        [`${PROM_PREFIX}_completed_total`]: completed_total
       };
 
       for (const metric in data) {
@@ -155,3 +150,30 @@ process.on("SIGINT", async () => {
 
 await once(redis, "ready");
 await app.listen({ host: HOST, port: PORT });
+
+function getRedisDriverInstance() {
+  if (REDIS_SENTINEL_ENABLED) {
+    const sentinels = REDIS_SENTINEL_HOSTS.split(",").map((entry) => {
+      const [host, port] = entry.trim().split(":");
+      return { host, port: parseInt(port, 10) };
+    });
+    return new Redis({
+      sentinels: sentinels,
+      name: REDIS_NAMESPACE,
+      username: REDIS_USERNAME,
+      password: REDIS_PASSWORD,
+      maxRetriesPerRequest: null,
+      offlineQueue: false,
+      tls
+    });
+  }
+  return new Redis({
+    host: REDIS_HOST,
+    port: REDIS_PORT,
+    username: REDIS_USERNAME,
+    password: REDIS_PASSWORD,
+    maxRetriesPerRequest: null,
+    offlineQueue: false,
+    tls
+  });
+}
