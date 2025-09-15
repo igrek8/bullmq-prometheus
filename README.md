@@ -32,6 +32,9 @@ docker run -it -p 3000:3000 -e REDIS_HOST=host.docker.internal igrek8/bullmq-pro
 - `REDIS_SENTINEL_ENABLED` - Redis sentinel mode enabled (default: false)
 - `REDIS_SENTINEL_HOSTS` - Redis sentinel addresses in `host:port` format as comma separated string
 - `REDIS_NAMESPACE` - Redis namespace (also referred as redis name)
+- `REDIS_SENTINEL_PASSWORD` - Redis sentinel password
+- `REDIS_SENTINEL_CA` - Redis sentinel CA certificate (base64 encoded CA certificate) (default: none)
+- `REDIS_SENTINEL_TLS` - Redis sentinel TLS (default: false)
 
 ## Endpoints
 
