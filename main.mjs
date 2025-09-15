@@ -33,7 +33,7 @@ const descriptions = {
   [`${PROM_PREFIX}_prioritized_total`]: "Number of prioritized jobs",
   [`${PROM_PREFIX}_delayed_total`]: "Number of delayed jobs",
   [`${PROM_PREFIX}_failed_total`]: "Number of failed jobs",
-  [`${PROM_PREFIX}_completed_total`]: "Number of completed jobs"
+  [`${PROM_PREFIX}_completed_total`]: "Number of completed jobs",
 };
 
 /**
