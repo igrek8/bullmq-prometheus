@@ -93,7 +93,7 @@ app.get("/metrics", async (_, res) => {
         [, prioritized_total],
         [, delayed_total],
         [, failed_total],
-        [, completed_total]
+        [, completed_total],
       ] = results.slice(i * offset, (i + 1) * offset);
 
       const data = {
@@ -103,7 +103,7 @@ app.get("/metrics", async (_, res) => {
         [`${PROM_PREFIX}_prioritized_total`]: prioritized_total,
         [`${PROM_PREFIX}_delayed_total`]: delayed_total,
         [`${PROM_PREFIX}_failed_total`]: failed_total,
-        [`${PROM_PREFIX}_completed_total`]: completed_total
+        [`${PROM_PREFIX}_completed_total`]: completed_total,
       };
 
       for (const metric in data) {
