@@ -14,9 +14,13 @@ const REDIS_USERNAME = process.env.REDIS_USERNAME;
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
 const REDIS_CA = process.env.REDIS_CA;
 const REDIS_TLS = process.env.REDIS_TLS === "true";
+
 const REDIS_SENTINEL_ENABLED = process.env.REDIS_SENTINEL_ENABLED === "true";
 const REDIS_SENTINEL_HOSTS = process.env.REDIS_SENTINEL_HOSTS;
 const REDIS_NAMESPACE = process.env.REDIS_NAMESPACE;
+const REDIS_SENTINEL_PASSWORD = process.env.REDIS_SENTINEL_PASSWORD;
+const REDIS_SENTINEL_CA = process.env.REDIS_SENTINEL_CA;
+const REDIS_SENTINEL_TLS = process.env.REDIS_SENTINEL_TLS === "true";
 
 const app = fastify({ logger: true });
 
@@ -35,17 +39,6 @@ const descriptions = {
 /**
  * @see https://github.com/redis/ioredis#tls-options
  */
-let tls = undefined;
-
-if (REDIS_TLS) {
-  tls = {};
-} else if (REDIS_CA) {
-  tls = {
-    ca: Buffer.from(REDIS_CA, "base64"),
-    rejectUnauthorized: true
-  };
-}
-
 const redis = getRedisDriverInstance();
 
 app.get("/health", (_, res) => {
@@ -152,11 +145,13 @@ await once(redis, "ready");
 await app.listen({ host: HOST, port: PORT });
 
 function getRedisDriverInstance() {
+  let tls = getTlsSettings(REDIS_TLS, REDIS_CA);
   if (REDIS_SENTINEL_ENABLED) {
     const sentinels = REDIS_SENTINEL_HOSTS.split(",").map((entry) => {
       const [host, port] = entry.trim().split(":");
       return { host, port: parseInt(port, 10) };
     });
+    let sentinelTLS = getTlsSettings(REDIS_SENTINEL_TLS, REDIS_SENTINEL_CA);
     return new Redis({
       sentinels: sentinels,
       name: REDIS_NAMESPACE,
@@ -164,7 +159,9 @@ function getRedisDriverInstance() {
       password: REDIS_PASSWORD,
       maxRetriesPerRequest: null,
       offlineQueue: false,
-      tls
+      sentinelPassword: REDIS_SENTINEL_PASSWORD,
+      tls,
+      sentinelTLS
     });
   }
   return new Redis({
@@ -176,4 +173,17 @@ function getRedisDriverInstance() {
     offlineQueue: false,
     tls
   });
+}
+
+function getTlsSettings(isTlsEnabled, certificate) {
+  let tls = undefined;
+  if (isTlsEnabled) {
+    tls = {};
+  } else if (certificate) {
+    tls = {
+      cert: Buffer.from(certificate, "base64"),
+      rejectUnauthorized: true
+    };
+  }
+  return tls;
 }
