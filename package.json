@@ -6,7 +6,7 @@
     "start": "node main.mjs"
   },
   "dependencies": {
-    "bullmq": "6.3.8",
+    "bullmq": "6.3.9",
     "fastify": "5.12.5",
     "ioredis": "6.0.0"
   }
